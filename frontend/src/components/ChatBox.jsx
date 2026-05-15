@@ -5,15 +5,17 @@ export default function ChatBox({ language }) {
   const t = translations[language];
 
   const [open, setOpen] = useState(false);
+
   const [messages, setMessages] = useState([
     {
       role: "bot",
       text:
         language === "te"
-          ? "హాయ్! నేను Robson మరియు risk score గురించి సహాయం చేస్తాను."
+          ? "హాయ్! నేను Robson group మరియు risk score గురించి సహాయం చేస్తాను."
           : "Hi! I can help with Robson groups and risk score explanation.",
     },
   ]);
+
   const [input, setInput] = useState("");
 
   const getReply = (msg) => {
@@ -25,6 +27,12 @@ export default function ChatBox({ language }) {
         : "Group 5 means previous C-section with term cephalic pregnancy. It increases C-section risk.";
     }
 
+    if (text.includes("group 9") || text.includes("transverse")) {
+      return language === "te"
+        ? "Group 9 అంటే transverse లేదా oblique lie. సాధారణంగా C-section risk చాలా ఎక్కువగా ఉంటుంది."
+        : "Group 9 means transverse or oblique lie. It usually has very high C-section risk.";
+    }
+
     if (text.includes("risk") || text.includes("score")) {
       return language === "te"
         ? "Risk score Robson group + age + diabetes + hypertension + gestational age ఆధారంగా calculate అవుతుంది."
@@ -33,20 +41,27 @@ export default function ChatBox({ language }) {
 
     if (text.includes("robson")) {
       return language === "te"
-        ? "Robson criteria women ni 10 obstetric groups lo classify chestundi based on parity, previous CS, presentation, gestational age, labour type."
-        : "Robson criteria classifies women into 10 obstetric groups based on parity, previous CS, presentation, gestational age, and labour type.";
+        ? "Robson criteria women ni 10 obstetric groups lo classify chestundi based on parity, previous CS, presentation, gestational age, fetal lie, and labour type."
+        : "Robson criteria classifies women into 10 obstetric groups based on parity, previous CS, presentation, gestational age, fetal lie, and labour type.";
     }
 
     return language === "te"
-      ? "దీనికి సంబంధించిన exact answer కోసం Robson group, risk score లేదా patient fields గురించి అడగండి."
-      : "Ask me about Robson group, risk score, or patient fields for a clearer answer.";
+      ? "Robson group, risk score, previous CS, presentation లేదా patient fields గురించి అడగండి."
+      : "Ask me about Robson group, risk score, previous CS, presentation, or patient fields.";
   };
 
   const sendMessage = () => {
     if (!input.trim()) return;
 
-    const userMsg = { role: "user", text: input };
-    const botMsg = { role: "bot", text: getReply(input) };
+    const userMsg = {
+      role: "user",
+      text: input,
+    };
+
+    const botMsg = {
+      role: "bot",
+      text: getReply(input),
+    };
 
     setMessages([...messages, userMsg, botMsg]);
     setInput("");
@@ -91,6 +106,7 @@ export default function ChatBox({ language }) {
             />
 
             <button
+              type="button"
               onClick={sendMessage}
               className="bg-cyan-500 text-white px-4 rounded-xl"
             >

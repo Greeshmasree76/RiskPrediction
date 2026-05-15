@@ -1,9 +1,16 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
+
+import { PATIENTS_API } from "../utils/api";
+import { translations } from "../utils/translations";
+
 import DashboardCards from "../components/DashboardCards";
 import Charts from "../components/Charts";
+import HighRiskAlert from "../components/HighRiskAlert";
 
-export default function Dashboard() {
+export default function Dashboard({ language }) {
+  const t = translations[language];
+
   const [formData, setFormData] = useState({
     patientName: "",
     age: "",
@@ -24,22 +31,23 @@ export default function Dashboard() {
   });
 
   const [patients, setPatients] = useState([]);
-  const [result, setResult] = useState("");
-  const [robsonGroup, setRobsonGroup] = useState("");
-  const [robsonDescription, setRobsonDescription] = useState("");
-  const [riskScore, setRiskScore] = useState("");
+  const [result, setResult] = useState(null);
+  const [alertPatient, setAlertPatient] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const stats = {
     total: patients.length,
-    highRisk: patients.filter((p) => p.outcome === "High C-Section Risk").length,
-    moderate: patients.filter((p) => p.outcome === "Moderate C-Section Risk").length,
-    normal: patients.filter((p) => p.outcome === "Normal Delivery Likely").length,
+    highRisk: patients.filter((p) => p.outcome === "High C-Section Risk")
+      .length,
+    moderate: patients.filter((p) => p.outcome === "Moderate C-Section Risk")
+      .length,
+    normal: patients.filter((p) => p.outcome === "Normal Delivery Likely")
+      .length,
   };
 
   const fetchPatients = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/patients");
+      const res = await axios.get(PATIENTS_API);
       setPatients(res.data);
     } catch (error) {
       console.log(error);
@@ -85,15 +93,13 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/patients",
-        formData
-      );
+      const res = await axios.post(PATIENTS_API, formData);
 
-      setResult(res.data.outcome);
-      setRobsonGroup(res.data.robsonGroup);
-      setRobsonDescription(res.data.robsonDescription);
-      setRiskScore(res.data.riskScore);
+      setResult(res.data);
+
+      if (res.data.outcome === "High C-Section Risk") {
+        setAlertPatient(res.data);
+      }
 
       await fetchPatients();
       resetForm();
@@ -107,114 +113,58 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold text-slate-800">
-        Hospital Dashboard
-      </h1>
+      <HighRiskAlert
+        patient={alertPatient}
+        onClose={() => setAlertPatient(null)}
+      />
 
-      <p className="text-gray-500 mb-8">
-        Research-level Modified Robson Criteria based C-section risk prediction system
-      </p>
+      <h1 className="text-4xl font-bold text-slate-800">{t.welcome}</h1>
 
-      <DashboardCards stats={stats} />
+      <p className="text-gray-500 mb-8">{t.welcomeSub}</p>
+
+      <DashboardCards stats={stats} language={language} />
 
       <Charts stats={stats} />
 
       <div className="bg-white rounded-3xl shadow-xl p-8 mt-8">
         <h2 className="text-2xl font-bold mb-6 text-slate-800">
-          New Patient Prediction
+          {t.newPrediction}
         </h2>
 
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-5"
         >
-          <input
-            name="patientName"
-            type="text"
-            placeholder="Patient Name"
-            value={formData.patientName}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
-
-          <input
-            name="age"
-            type="number"
-            placeholder="Age"
-            value={formData.age}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
-
-          <input
-            name="weight"
-            type="number"
-            placeholder="Weight"
-            value={formData.weight}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
-
-          <input
-            name="height"
-            type="number"
-            placeholder="Height"
-            value={formData.height}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
-
-          <input
-            name="gravida"
-            type="number"
-            placeholder="Gravida"
-            value={formData.gravida}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
-
-          <input
-            name="parity"
-            type="number"
-            placeholder="Parity"
-            value={formData.parity}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
-
-          <input
-            name="previousCSCount"
-            type="number"
-            placeholder="Previous CS Count"
-            value={formData.previousCSCount}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-          />
-
-          <input
-            name="gestationalAge"
-            type="number"
-            placeholder="Gestational Age"
-            value={formData.gestationalAge}
-            onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
-            required
-          />
+          {[
+            ["patientName", t.patientName, "text"],
+            ["age", t.age, "number"],
+            ["weight", t.weight, "number"],
+            ["height", t.height, "number"],
+            ["gravida", t.gravida, "number"],
+            ["parity", t.parity, "number"],
+            ["previousCSCount", t.previousCSCount, "number"],
+            ["gestationalAge", t.gestationalAge, "number"],
+          ].map(([name, placeholder, type]) => (
+            <input
+              key={name}
+              name={name}
+              type={type}
+              placeholder={placeholder}
+              value={formData[name]}
+              onChange={handleChange}
+              className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
+              required={name !== "previousCSCount"}
+            />
+          ))}
 
           <select
             name="numberOfFetuses"
             value={formData.numberOfFetuses}
             onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
+            className="border bg-slate-50 p-3 rounded-xl"
             required
           >
-            <option value="">Select Number of Fetuses</option>
+            <option value="">{t.numberOfFetuses}</option>
             <option value="Single">Single</option>
             <option value="Multiple">Multiple</option>
           </select>
@@ -223,10 +173,10 @@ export default function Dashboard() {
             name="fetalLie"
             value={formData.fetalLie}
             onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
+            className="border bg-slate-50 p-3 rounded-xl"
             required
           >
-            <option value="">Select Fetal Lie</option>
+            <option value="">{t.fetalLie}</option>
             <option value="Longitudinal">Longitudinal</option>
             <option value="Transverse">Transverse</option>
             <option value="Oblique">Oblique</option>
@@ -236,10 +186,10 @@ export default function Dashboard() {
             name="presentation"
             value={formData.presentation}
             onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
+            className="border bg-slate-50 p-3 rounded-xl"
             required
           >
-            <option value="">Select Presentation</option>
+            <option value="">{t.presentation}</option>
             <option value="Cephalic">Cephalic</option>
             <option value="Breech">Breech</option>
             <option value="Transverse">Transverse</option>
@@ -250,10 +200,10 @@ export default function Dashboard() {
             name="labourType"
             value={formData.labourType}
             onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
+            className="border bg-slate-50 p-3 rounded-xl"
             required
           >
-            <option value="">Select Labour Type</option>
+            <option value="">{t.labourType}</option>
             <option value="Spontaneous">Spontaneous</option>
             <option value="Induced">Induced</option>
             <option value="No Labour">No Labour</option>
@@ -263,43 +213,32 @@ export default function Dashboard() {
             name="deliveryTiming"
             value={formData.deliveryTiming}
             onChange={handleChange}
-            className="border bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-cyan-400"
+            className="border bg-slate-50 p-3 rounded-xl"
             required
           >
-            <option value="">Select Delivery Timing</option>
+            <option value="">{t.deliveryTiming}</option>
             <option value="In Labour">In Labour</option>
             <option value="Pre Labour CS">Pre Labour CS</option>
           </select>
 
-          <label className="flex gap-2 items-center bg-slate-50 p-3 rounded-xl">
-            <input
-              type="checkbox"
-              name="previousLSCS"
-              checked={formData.previousLSCS}
-              onChange={handleChange}
-            />
-            Previous LSCS
-          </label>
-
-          <label className="flex gap-2 items-center bg-slate-50 p-3 rounded-xl">
-            <input
-              type="checkbox"
-              name="diabetes"
-              checked={formData.diabetes}
-              onChange={handleChange}
-            />
-            Diabetes
-          </label>
-
-          <label className="flex gap-2 items-center bg-slate-50 p-3 rounded-xl">
-            <input
-              type="checkbox"
-              name="hypertension"
-              checked={formData.hypertension}
-              onChange={handleChange}
-            />
-            Hypertension
-          </label>
+          {[
+            ["previousLSCS", t.previousLSCS],
+            ["diabetes", t.diabetes],
+            ["hypertension", t.hypertension],
+          ].map(([name, label]) => (
+            <label
+              key={name}
+              className="flex gap-2 items-center bg-slate-50 p-3 rounded-xl"
+            >
+              <input
+                type="checkbox"
+                name={name}
+                checked={formData[name]}
+                onChange={handleChange}
+              />
+              {label}
+            </label>
+          ))}
 
           <button
             type="submit"
@@ -310,82 +249,36 @@ export default function Dashboard() {
                 : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-[1.01]"
             }`}
           >
-            {loading ? "Predicting..." : "Predict Delivery Risk"}
+            {loading ? t.predicting : t.predict}
           </button>
         </form>
 
         {result && (
           <div
             className={`mt-6 p-6 rounded-2xl text-center ${
-              result === "High C-Section Risk"
+              result.outcome === "High C-Section Risk"
                 ? "bg-red-100 text-red-700"
-                : result === "Moderate C-Section Risk"
+                : result.outcome === "Moderate C-Section Risk"
                 ? "bg-yellow-100 text-yellow-700"
                 : "bg-emerald-100 text-emerald-700"
             }`}
           >
-            <h2 className="text-2xl font-bold">Prediction Result</h2>
+            <h2 className="text-2xl font-bold">{t.predictionResult}</h2>
 
             <p className="text-lg mt-2">
-              Modified Robson Group:{" "}
-              <span className="font-bold">Group {robsonGroup}</span>
+              {t.robsonGroup}:{" "}
+              <span className="font-bold">Group {result.robsonGroup}</span>
             </p>
 
-            <p className="text-sm mt-2">
-              {robsonDescription}
-            </p>
+            <p className="text-sm mt-2">{result.robsonDescription}</p>
 
             <p className="text-lg mt-2">
-              Risk Score: <span className="font-bold">{riskScore}</span>
+              {t.riskScore}: <b>{result.riskScore}</b>
             </p>
 
-            <p className="text-xl mt-2 font-bold">{result}</p>
+            <p className="text-xl mt-2 font-bold">{result.outcome}</p>
           </div>
         )}
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-xl p-8 mt-8">
-        <h2 className="text-2xl font-bold mb-6 text-slate-800">
-          Recent Patient Records
-        </h2>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-100">
-              <tr>
-                <th className="p-3 text-left">Name</th>
-                <th className="p-3 text-left">Age</th>
-                <th className="p-3 text-left">Robson Group</th>
-                <th className="p-3 text-left">Risk Score</th>
-                <th className="p-3 text-left">Outcome</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {patients.slice(0, 5).map((p) => (
-                <tr key={p._id} className="border-b hover:bg-slate-50">
-                  <td className="p-3">{p.patientName}</td>
-                  <td className="p-3">{p.age}</td>
-                  <td className="p-3 font-bold text-cyan-600">
-                    {p.robsonGroup ? `Group ${p.robsonGroup}` : "Not classified"}
-                  </td>
-                  <td className="p-3">{p.riskScore ?? "-"}</td>
-                  <td
-                    className={`p-3 font-bold ${
-                      p.outcome === "High C-Section Risk"
-                        ? "text-red-500"
-                        : p.outcome === "Moderate C-Section Risk"
-                        ? "text-yellow-600"
-                        : "text-emerald-600"
-                    }`}
-                  >
-                    {p.outcome}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
